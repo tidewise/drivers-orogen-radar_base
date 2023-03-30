@@ -1,46 +1,58 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.hpp */
 
-#ifndef RADAR_BASE_TASK_TASK_HPP
-#define RADAR_BASE_TASK_TASK_HPP
+#ifndef RADAR_BASE_RADAR2FRAMETASK_TASK_HPP
+#define RADAR_BASE_RADAR2FRAMETASK_TASK_HPP
 
-#include "radar_base/TaskBase.hpp"
+#include "radar_base/EchoToImageLUT.hpp"
+#include "radar_base/Radar2FrameTaskBase.hpp"
+#include <memory>
+#include <opencv2/highgui.hpp>
+#include <base/samples/Frame.hpp>
 
-namespace radar_base{
+namespace radar_base {
 
-    /*! \class Task
-     * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
-     * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
-     * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     * Declare a new task context (i.e., a component)
-
-The corresponding C++ class can be edited in tasks/Task.hpp and
-tasks/Task.cpp, and will be put in the radar_base namespace.
+    /*! \class Radar2FrameTask
+     * \brief The task context provides and requires services. It uses an ExecutionEngine
+     to perform its functions.
+     * Essential interfaces are operations, data flow ports and properties. These
+     interfaces have been defined using the oroGen specification.
+     * In order to modify the interfaces you should (re)use oroGen and rely on the
+     associated workflow.
+     *
      * \details
      * The name of a TaskContext is primarily defined via:
      \verbatim
      deployment 'deployment_name'
-         task('custom_task_name','radar_base::Task')
+         task('custom_task_name','radar_base::Radar2FrameTask')
      end
      \endverbatim
-     *  It can be dynamically adapted when the deployment is called with a prefix argument.
+     *  It can be dynamically adapted when the deployment is called with a prefix
+     argument.
      */
-    class Task : public TaskBase
-    {
-	friend class TaskBase;
+    class Radar2FrameTask : public Radar2FrameTaskBase {
+        friend class Radar2FrameTaskBase;
+
+    private:
+        int m_current_sweep_size = 0;
+        int m_current_num_angles = 0;
+        float m_current_range = 0;
+        std::unique_ptr<EchoToImageLUT> m_lut;
+        cv::Mat m_cv_frame;
+        RTT::extras::ReadOnlyPointer<base::samples::frame::Frame> m_output_frame;
+        int m_number_of_echoes_collected = 0;
+
     protected:
-
-
-
     public:
-        /** TaskContext constructor for Task
-         * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
-         * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
+        /** TaskContext constructor for Radar2FrameTask
+         * \param name Name of the task. This name needs to be unique to make it
+         * identifiable via nameservices. \param initial_state The initial TaskState of
+         * the TaskContext. Default is Stopped state.
          */
-        Task(std::string const& name = "radar_base::Task");
+        Radar2FrameTask(std::string const& name = "radar_base::Radar2FrameTask");
 
-        /** Default deconstructor of Task
+        /** Default deconstructor of Radar2FrameTask
          */
-	~Task();
+        ~Radar2FrameTask();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
@@ -99,8 +111,15 @@ tasks/Task.cpp, and will be put in the radar_base namespace.
          * before calling start() again.
          */
         void cleanupHook();
+
+        void updateLookUpTable();
+
+        void addEchoesToFrame(Radar const& echo);
+
+        void publishFrame();
+
+        void configureOutput();
     };
 }
 
 #endif
-

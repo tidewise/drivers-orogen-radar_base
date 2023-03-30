@@ -3,7 +3,19 @@ name "radar_base"
 using_library "radar_base"
 import_types_from "base"
 import_types_from "radar_base/Radar.hpp"
+import_types_from "radar_baseTypes.hpp"
 
 typekit do
     export_types "radar_base/Radar"
+end
+
+task_context "Radar2FrameTask" do
+    needs_configuration
+
+    property "radar_frame_export_config", "/radar_base/RadarFrameExportConfig"
+
+    input_port "echo", "radar_base/Radar"
+    output_port "frame", ro_ptr("base/samples/frame/Frame")
+    output_port "range", "double"
+    port_driven
 end

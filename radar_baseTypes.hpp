@@ -9,7 +9,11 @@
  */
 
 namespace radar_base {
+
+    struct RadarFrameExportConfig {
+        int window_size = 1024;
+        float beam_width = 0.0174;
+    };
 }
 
 #endif
-

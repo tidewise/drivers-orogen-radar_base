@@ -8,4 +8,7 @@
   <logo>http://</logo>
   <depend package="base/cmake" />
   <depend package="drivers/radar_base" />
+  <depend package="opencv" />
+  <depend package="base/logging" />
+  <test_depend name="tools/syskit" />
 </package>
