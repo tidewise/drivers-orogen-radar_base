@@ -12,9 +12,11 @@ end
 task_context "Radar2FrameTask" do
     needs_configuration
 
-    property "radar_frame_export_config", "/radar_base/RadarFrameExportConfig"
+    property "export_config", "/radar_base/RadarFrameExportConfig"
 
     input_port "echo", "radar_base/Radar"
+    input_port "sensor2ref_pose", "/base/samples/RigidBodyState"
+
     output_port "frame", ro_ptr("base/samples/frame/Frame")
     output_port "range", "double"
     port_driven

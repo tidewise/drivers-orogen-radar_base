@@ -2,6 +2,7 @@
 
 #include "Radar2FrameTask.hpp"
 #include <base-logging/Logging.hpp>
+#include <base/samples/RigidBodyState.hpp>
 #include <math.h>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -39,23 +40,23 @@ void Radar2FrameTask::updateHook()
 {
     Radar2FrameTaskBase::updateHook();
     Radar radar_echo;
-    if (_echo.read(radar_echo, false) != RTT::NewData) {
-        LOG_INFO_S << "No data";
-        return;
-    }
+    if (_echo.read(radar_echo, false) == RTT::NewData) {
+        if (m_current_sweep_size != radar_echo.sweep_length ||
+            m_current_num_angles != (2 * M_PI / radar_echo.step_angle.getRad()) ||
+            m_current_range != radar_echo.range) {
+            m_current_sweep_size = radar_echo.sweep_length;
+            m_current_num_angles = 2 * M_PI / radar_echo.step_angle.getRad();
+            m_current_range = radar_echo.range;
+            updateLookUpTable();
+            m_echoes.clear();
+        }
 
-    if (m_current_sweep_size != radar_echo.sweep_length ||
-        m_current_num_angles != (2 * M_PI / radar_echo.step_angle.getRad()) ||
-        m_current_range != radar_echo.range) {
-        m_current_sweep_size = radar_echo.sweep_length;
-        m_current_num_angles = 2 * M_PI / radar_echo.step_angle.getRad();
-        m_current_range = radar_echo.range;
-        updateLookUpTable();
-        m_cv_frame = 0;
-        m_number_of_echoes_collected = 0;
+        addEchoesToFrame(radar_echo);
     }
-
-    addEchoesToFrame(radar_echo);
+    if (base::Time::now() - m_last_sample >
+        _export_config.get().time_between_frames) {
+        publishFrame();
+    }
 }
 void Radar2FrameTask::errorHook()
 {
@@ -73,7 +74,7 @@ void Radar2FrameTask::cleanupHook()
 void Radar2FrameTask::updateLookUpTable()
 {
     LOG_INFO_S << "Updating LookUpTable";
-    auto config = _radar_frame_export_config.get();
+    auto config = _export_config.get();
     m_lut.reset(new EchoToImageLUT(m_current_num_angles,
         m_current_sweep_size,
         config.beam_width,
@@ -83,47 +84,85 @@ void Radar2FrameTask::updateLookUpTable()
 void Radar2FrameTask::addEchoesToFrame(Radar const& echo)
 {
     LOG_INFO_S << "Adding Echoes to frame";
-    int start_angle_unit = echo.start_heading.getRad() / echo.step_angle.getRad();
+    float angle = echo.start_heading.getRad();
+    if (angle < 0) {
+        angle = 2 * M_PI + angle;
+    }
+
+    int start_angle_unit = angle / echo.step_angle.getRad();
     int angles_in_a_frame = 2 * M_PI / echo.step_angle.getRad();
-    LOG_INFO_S << "Start angle unit: " << start_angle_unit << "angles in a frame "
-               << angles_in_a_frame;
+    LOG_DEBUG_S << "ANGLE MESSAGE-> start: " << start_angle_unit
+                << " end: " << start_angle_unit + echo.sweep_timestamps.size()
+                << " Sweep length: " << echo.sweep_length;
     for (int current_angle = 0;
          current_angle < static_cast<int>(echo.sweep_timestamps.size());
          current_angle++) {
-        for (int echo_index = 0; echo_index < echo.sweep_length; echo_index++) {
-            m_lut->updateImage(m_cv_frame,
-                (start_angle_unit + current_angle) % angles_in_a_frame,
-                echo_index,
-                echo.sweep_data[current_angle * echo.sweep_length + echo_index]);
-        }
-        m_number_of_echoes_collected++;
-        if (m_number_of_echoes_collected >= 2 * M_PI / echo.step_angle.getRad()) {
-            publishFrame();
-        }
+        LOG_DEBUG_S << "ANGLE LOOP-> Index: " << current_angle << " angle message: "
+                    << start_angle_unit + current_angle % angles_in_a_frame << "/"
+                    << angles_in_a_frame
+                    << " sweep: " << current_angle * echo.sweep_length << "/"
+                    << (current_angle + 1) * echo.sweep_length
+                    << " total sweep length: " << echo.sweep_data.size();
+
+        m_echoes[(start_angle_unit + current_angle) % angles_in_a_frame] =
+            std::make_unique<std::vector<uint8_t>>(echo.sweep_data.begin() +
+                                                       current_angle * echo.sweep_length,
+                echo.sweep_data.begin() + (current_angle + 1) * echo.sweep_length);
     }
+}
+
+int Radar2FrameTask::discretizeAngle(double theta_rad, int num_angles)
+{
+    while (theta_rad < 0) {
+        theta_rad += 2 * M_PI;
+    }
+    double angle_step = 2 * M_PI / num_angles;
+    return round(theta_rad / angle_step);
 }
 
 void Radar2FrameTask::publishFrame()
 {
+    if (_export_config.get().use_heading_correction) {
+        base::samples::RigidBodyState sensor2ref_pose;
+        if (_sensor2ref_pose.read(sensor2ref_pose) != RTT::NewData) {
+            return;
+        }
+        m_yaw_correction =
+            discretizeAngle(sensor2ref_pose.getYaw(), m_current_num_angles);
+    }
+    else {
+        m_yaw_correction = 0;
+    }
+
+    LOG_INFO_S << "Adding echoes into a frame...";
+    LOG_DEBUG_S << "YAW correction: " << m_yaw_correction;
+    for (const auto& [angle, sweep] : m_echoes) {
+        for (int echo_index = 0; echo_index < m_current_sweep_size; echo_index++) {
+            m_lut->updateImage(m_cv_frame,
+                (angle + m_yaw_correction) % m_current_num_angles,
+                echo_index,
+                sweep->at(echo_index));
+        }
+    }
     LOG_INFO_S << "Publishing Frame";
-    cv::cvtColor(m_cv_frame, m_cv_frame, cv::COLOR_BGR2GRAY);
+    Mat output;
+    cv::cvtColor(m_cv_frame, output, cv::COLOR_BGR2GRAY);
     Frame* out_frame = m_output_frame.write_access();
     out_frame->time = base::Time::now();
     out_frame->received_time = out_frame->time;
-    out_frame->setImage(m_cv_frame.data, m_cv_frame.total() * m_cv_frame.elemSize());
+    out_frame->setImage(output.data, output.total() * output.elemSize());
     out_frame->setStatus(STATUS_VALID);
     m_output_frame.reset(out_frame);
     _frame.write(m_output_frame);
     _range.write(m_current_range);
-
-    m_number_of_echoes_collected = 0;
+    m_last_sample = base::Time::now();
     m_cv_frame = 0;
 }
 
 void Radar2FrameTask::configureOutput()
 {
     LOG_INFO_S << "Configuring output";
-    auto config = _radar_frame_export_config.get();
+    auto config = _export_config.get();
     m_cv_frame = Mat::zeros(config.window_size, config.window_size, CV_8UC3);
 
     Frame* frame = new Frame(config.window_size,

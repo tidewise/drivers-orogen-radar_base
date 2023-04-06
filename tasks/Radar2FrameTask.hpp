@@ -5,9 +5,10 @@
 
 #include "radar_base/EchoToImageLUT.hpp"
 #include "radar_base/Radar2FrameTaskBase.hpp"
+#include <base/samples/Frame.hpp>
 #include <memory>
 #include <opencv2/highgui.hpp>
-#include <base/samples/Frame.hpp>
+#include <base/Time.hpp>
 
 namespace radar_base {
 
@@ -36,10 +37,14 @@ namespace radar_base {
         int m_current_sweep_size = 0;
         int m_current_num_angles = 0;
         float m_current_range = 0;
+        int m_yaw_correction = 0;
+        base::Time m_last_sample;
+
+        std::map<int, std::unique_ptr<std::vector<uint8_t>>> m_echoes;
+
         std::unique_ptr<EchoToImageLUT> m_lut;
         cv::Mat m_cv_frame;
         RTT::extras::ReadOnlyPointer<base::samples::frame::Frame> m_output_frame;
-        int m_number_of_echoes_collected = 0;
 
     protected:
     public:
@@ -119,6 +124,8 @@ namespace radar_base {
         void publishFrame();
 
         void configureOutput();
+
+        int discretizeAngle(double theta_rad, int num_angles);
     };
 }
 
