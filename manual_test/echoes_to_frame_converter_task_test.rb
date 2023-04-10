@@ -4,7 +4,7 @@ using_task_library "radar_base"
 import_types_from "radar_base"
 import_types_from "base"
 
-describe OroGen.radar_base.Radar2FrameTask do
+describe OroGen.radar_base.EchoesToFrameConverterTask do
     run_live
 
     it "starts and outputs radar data" do
@@ -94,7 +94,7 @@ describe OroGen.radar_base.Radar2FrameTask do
     def create_task
         task = syskit_deploy(
             OroGen.radar_base
-                  .Radar2FrameTask
+                  .EchoesToFrameConverterTask
                   .deployed_as("radar_base_radar_2_frame_task")
         )
         samples = 4

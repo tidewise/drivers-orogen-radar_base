@@ -1,10 +1,10 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.hpp */
 
-#ifndef RADAR_BASE_RADAR2FRAMETASK_TASK_HPP
-#define RADAR_BASE_RADAR2FRAMETASK_TASK_HPP
+#ifndef RADAR_BASE_ECHOESTOFRAMECONVERTERTASK_TASK_HPP
+#define RADAR_BASE_ECHOESTOFRAMECONVERTERTASK_TASK_HPP
 
 #include "radar_base/EchoToImageLUT.hpp"
-#include "radar_base/Radar2FrameTaskBase.hpp"
+#include "radar_base/EchoesToFrameConverterTaskBase.hpp"
 #include <base/samples/Frame.hpp>
 #include <memory>
 #include <opencv2/highgui.hpp>
@@ -12,7 +12,7 @@
 
 namespace radar_base {
 
-    /*! \class Radar2FrameTask
+    /*! \class EchoesToFrameConverterTask
      * \brief The task context provides and requires services. It uses an ExecutionEngine
      to perform its functions.
      * Essential interfaces are operations, data flow ports and properties. These
@@ -24,14 +24,14 @@ namespace radar_base {
      * The name of a TaskContext is primarily defined via:
      \verbatim
      deployment 'deployment_name'
-         task('custom_task_name','radar_base::Radar2FrameTask')
+         task('custom_task_name','radar_base::EchoesToFrameConverterTask')
      end
      \endverbatim
      *  It can be dynamically adapted when the deployment is called with a prefix
      argument.
      */
-    class Radar2FrameTask : public Radar2FrameTaskBase {
-        friend class Radar2FrameTaskBase;
+    class EchoesToFrameConverterTask : public EchoesToFrameConverterTaskBase {
+        friend class EchoesToFrameConverterTaskBase;
 
     private:
         int m_current_sweep_size = 0;
@@ -48,16 +48,16 @@ namespace radar_base {
 
     protected:
     public:
-        /** TaskContext constructor for Radar2FrameTask
+        /** TaskContext constructor for EchoesToFrameConverterTask
          * \param name Name of the task. This name needs to be unique to make it
          * identifiable via nameservices. \param initial_state The initial TaskState of
          * the TaskContext. Default is Stopped state.
          */
-        Radar2FrameTask(std::string const& name = "radar_base::Radar2FrameTask");
+        EchoesToFrameConverterTask(std::string const& name = "radar_base::EchoesToFrameConverterTask");
 
-        /** Default deconstructor of Radar2FrameTask
+        /** Default deconstructor of EchoesToFrameConverterTask
          */
-        ~Radar2FrameTask();
+        ~EchoesToFrameConverterTask();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the

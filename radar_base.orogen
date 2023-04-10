@@ -9,7 +9,7 @@ typekit do
     export_types "radar_base/Radar"
 end
 
-task_context "Radar2FrameTask" do
+task_context "EchoesToFrameConverterTask" do
     needs_configuration
 
     property "export_config", "/radar_base/RadarFrameExportConfig"

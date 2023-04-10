@@ -1,6 +1,6 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
-#include "Radar2FrameTask.hpp"
+#include "EchoesToFrameConverterTask.hpp"
 #include <base-logging/Logging.hpp>
 #include <base/samples/RigidBodyState.hpp>
 #include <math.h>
@@ -9,36 +9,36 @@
 using namespace radar_base;
 using namespace cv;
 using namespace base::samples::frame;
-Radar2FrameTask::Radar2FrameTask(std::string const& name)
-    : Radar2FrameTaskBase(name)
+EchoesToFrameConverterTask::EchoesToFrameConverterTask(std::string const& name)
+    : EchoesToFrameConverterTaskBase(name)
 {
 }
 
-Radar2FrameTask::~Radar2FrameTask()
+EchoesToFrameConverterTask::~EchoesToFrameConverterTask()
 {
 }
 
 /// The following lines are template definitions for the various state machine
-// hooks defined by Orocos::RTT. See Radar2FrameTask.hpp for more detailed
+// hooks defined by Orocos::RTT. See EchoesToFrameConverterTask.hpp for more detailed
 // documentation about them.
 
-bool Radar2FrameTask::configureHook()
+bool EchoesToFrameConverterTask::configureHook()
 {
-    if (!Radar2FrameTaskBase::configureHook())
+    if (!EchoesToFrameConverterTaskBase::configureHook())
         return false;
     configureOutput();
     updateLookUpTable();
     return true;
 }
-bool Radar2FrameTask::startHook()
+bool EchoesToFrameConverterTask::startHook()
 {
-    if (!Radar2FrameTaskBase::startHook())
+    if (!EchoesToFrameConverterTaskBase::startHook())
         return false;
     return true;
 }
-void Radar2FrameTask::updateHook()
+void EchoesToFrameConverterTask::updateHook()
 {
-    Radar2FrameTaskBase::updateHook();
+    EchoesToFrameConverterTaskBase::updateHook();
     Radar radar_echo;
     if (_echo.read(radar_echo, false) == RTT::NewData) {
         if (m_current_sweep_size != radar_echo.sweep_length ||
@@ -58,20 +58,20 @@ void Radar2FrameTask::updateHook()
         publishFrame();
     }
 }
-void Radar2FrameTask::errorHook()
+void EchoesToFrameConverterTask::errorHook()
 {
-    Radar2FrameTaskBase::errorHook();
+    EchoesToFrameConverterTaskBase::errorHook();
 }
-void Radar2FrameTask::stopHook()
+void EchoesToFrameConverterTask::stopHook()
 {
-    Radar2FrameTaskBase::stopHook();
+    EchoesToFrameConverterTaskBase::stopHook();
 }
-void Radar2FrameTask::cleanupHook()
+void EchoesToFrameConverterTask::cleanupHook()
 {
-    Radar2FrameTaskBase::cleanupHook();
+    EchoesToFrameConverterTaskBase::cleanupHook();
 }
 
-void Radar2FrameTask::updateLookUpTable()
+void EchoesToFrameConverterTask::updateLookUpTable()
 {
     LOG_INFO_S << "Updating LookUpTable";
     auto config = _export_config.get();
@@ -81,7 +81,7 @@ void Radar2FrameTask::updateLookUpTable()
         config.window_size));
 }
 
-void Radar2FrameTask::addEchoesToFrame(Radar const& echo)
+void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo)
 {
     LOG_INFO_S << "Adding Echoes to frame";
     float angle = echo.start_heading.getRad();
@@ -111,7 +111,7 @@ void Radar2FrameTask::addEchoesToFrame(Radar const& echo)
     }
 }
 
-int Radar2FrameTask::discretizeAngle(double theta_rad, int num_angles)
+int EchoesToFrameConverterTask::discretizeAngle(double theta_rad, int num_angles)
 {
     while (theta_rad < 0) {
         theta_rad += 2 * M_PI;
@@ -120,7 +120,7 @@ int Radar2FrameTask::discretizeAngle(double theta_rad, int num_angles)
     return round(theta_rad / angle_step);
 }
 
-void Radar2FrameTask::publishFrame()
+void EchoesToFrameConverterTask::publishFrame()
 {
     if (_export_config.get().use_heading_correction) {
         base::samples::RigidBodyState sensor2ref_pose;
@@ -159,7 +159,7 @@ void Radar2FrameTask::publishFrame()
     m_cv_frame = 0;
 }
 
-void Radar2FrameTask::configureOutput()
+void EchoesToFrameConverterTask::configureOutput()
 {
     LOG_INFO_S << "Configuring output";
     auto config = _export_config.get();
