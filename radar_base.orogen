@@ -20,5 +20,5 @@ task_context "EchoesToFrameConverterTask" do
     output_port "frame", ro_ptr("base/samples/frame/Frame")
     output_port "range", "double"
 
-    periodic 0.02
+    port_driven
 end

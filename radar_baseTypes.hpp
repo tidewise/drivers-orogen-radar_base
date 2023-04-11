@@ -15,7 +15,7 @@ namespace radar_base {
     struct RadarFrameExportConfig {
         base::Time time_between_frames;
         bool use_heading_correction = true;
-        int window_size = 1024;
+        int output_image_size = 1024;
         float beam_width = 0.0174;
     };
 }

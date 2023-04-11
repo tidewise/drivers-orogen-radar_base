@@ -39,8 +39,7 @@ namespace radar_base {
         float m_current_range = 0;
         base::Time m_last_sample;
 
-        std::map<int, std::unique_ptr<std::vector<uint8_t>>> m_echoes;
-
+        std::vector<uint8_t> m_echoes;
         std::unique_ptr<EchoToImageLUT> m_lut;
         cv::Mat m_cv_frame;
         RTT::extras::ReadOnlyPointer<base::samples::frame::Frame> m_output_frame;
@@ -119,13 +118,11 @@ namespace radar_base {
 
         void updateLookUpTable();
 
-        void addEchoesToFrame(Radar const& echo, double yaw_correction);
+        void addEchoesToFrame(Radar const& echo, base::Angle yaw_correction);
 
         void publishFrame();
 
         void configureOutput();
-
-        int discretizeAngle(double theta_rad, int num_angles);
     };
 }
 

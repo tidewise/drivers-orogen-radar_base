@@ -15,6 +15,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
             have_one_new_sample(task.frame_port)
         end
         expected = File.binread(File.join(__dir__, "image1.bin"))
+
         assert_equal expected, "#{output.image.to_a}",
                      "single radar data output differs from expected image"
     end
@@ -28,6 +29,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
             have_one_new_sample(task.frame_port)
         end
         expected = File.binread(File.join(__dir__, "image2.bin"))
+
         assert_equal expected, "#{output.image.to_a}",
                      "multiple radar data output differs from expected image"
     end
@@ -81,6 +83,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         end.to do
             have_one_new_sample(task.frame_port)
         end
+
         arrow[16..23] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[0..7] = [0, 255, 0, 255, 0, 255, 0, 255]
         @echo_rotation[:sweep_data] = arrow
@@ -107,9 +110,9 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         samples = 4
         sweep_length = 8
         task.properties.export_config = {
-            time_between_frames: Time.at(0.2),
+            time_between_frames: Time.at(0.001),
             use_heading_correction: false,
-            window_size: 512,
+            output_image_size: 512,
             beam_width: 1 / samples * 2 * Math::PI
         }
         pattern = [0, 255]
