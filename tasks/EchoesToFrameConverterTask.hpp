@@ -5,10 +5,10 @@
 
 #include "radar_base/EchoToImageLUT.hpp"
 #include "radar_base/EchoesToFrameConverterTaskBase.hpp"
+#include <base/Time.hpp>
 #include <base/samples/Frame.hpp>
 #include <memory>
 #include <opencv2/highgui.hpp>
-#include <base/Time.hpp>
 
 namespace radar_base {
 
@@ -37,7 +37,6 @@ namespace radar_base {
         int m_current_sweep_size = 0;
         int m_current_num_angles = 0;
         float m_current_range = 0;
-        int m_yaw_correction = 0;
         base::Time m_last_sample;
 
         std::map<int, std::unique_ptr<std::vector<uint8_t>>> m_echoes;
@@ -53,7 +52,8 @@ namespace radar_base {
          * identifiable via nameservices. \param initial_state The initial TaskState of
          * the TaskContext. Default is Stopped state.
          */
-        EchoesToFrameConverterTask(std::string const& name = "radar_base::EchoesToFrameConverterTask");
+        EchoesToFrameConverterTask(
+            std::string const& name = "radar_base::EchoesToFrameConverterTask");
 
         /** Default deconstructor of EchoesToFrameConverterTask
          */
@@ -119,7 +119,7 @@ namespace radar_base {
 
         void updateLookUpTable();
 
-        void addEchoesToFrame(Radar const& echo);
+        void addEchoesToFrame(Radar const& echo, double yaw_correction);
 
         void publishFrame();
 

@@ -34,13 +34,22 @@ bool EchoesToFrameConverterTask::startHook()
 {
     if (!EchoesToFrameConverterTaskBase::startHook())
         return false;
+    m_last_sample = base::Time::now();
     return true;
 }
 void EchoesToFrameConverterTask::updateHook()
 {
     EchoesToFrameConverterTaskBase::updateHook();
+
+    double yaw_correction = 0;
+    base::samples::RigidBodyState sensor2ref_pose;
+    if (_sensor2ref_pose.read(sensor2ref_pose) != RTT::NoData) {
+        yaw_correction = sensor2ref_pose.getYaw();
+    }
+
+
     Radar radar_echo;
-    if (_echo.read(radar_echo, false) == RTT::NewData) {
+    while (_echo.read(radar_echo, false) == RTT::NewData) {
         if (m_current_sweep_size != radar_echo.sweep_length ||
             m_current_num_angles != (2 * M_PI / radar_echo.step_angle.getRad()) ||
             m_current_range != radar_echo.range) {
@@ -51,10 +60,9 @@ void EchoesToFrameConverterTask::updateHook()
             m_echoes.clear();
         }
 
-        addEchoesToFrame(radar_echo);
+        addEchoesToFrame(radar_echo, yaw_correction);
     }
-    if (base::Time::now() - m_last_sample >
-        _export_config.get().time_between_frames) {
+    if (base::Time::now() - m_last_sample > _export_config.get().time_between_frames) {
         publishFrame();
     }
 }
@@ -81,28 +89,29 @@ void EchoesToFrameConverterTask::updateLookUpTable()
         config.window_size));
 }
 
-void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo)
+void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo,
+    double yaw_correction)
 {
     LOG_INFO_S << "Adding Echoes to frame";
-    float angle = echo.start_heading.getRad();
+    double angle = echo.start_heading.getRad() + yaw_correction;
     if (angle < 0) {
         angle = 2 * M_PI + angle;
     }
 
-    int start_angle_unit = angle / echo.step_angle.getRad();
+    int start_angle_unit = round(angle / echo.step_angle.getRad());
     int angles_in_a_frame = 2 * M_PI / echo.step_angle.getRad();
-    LOG_DEBUG_S << "ANGLE MESSAGE-> start: " << start_angle_unit
-                << " end: " << start_angle_unit + echo.sweep_timestamps.size()
-                << " Sweep length: " << echo.sweep_length;
+    LOG_INFO_S << "ANGLE MESSAGE-> start: " << start_angle_unit
+               << "YAW Correction: " << yaw_correction
+               << " end: " << start_angle_unit + echo.sweep_timestamps.size()
+               << " Sweep length: " << echo.sweep_length;
     for (int current_angle = 0;
          current_angle < static_cast<int>(echo.sweep_timestamps.size());
          current_angle++) {
-        LOG_DEBUG_S << "ANGLE LOOP-> Index: " << current_angle << " angle message: "
-                    << start_angle_unit + current_angle % angles_in_a_frame << "/"
-                    << angles_in_a_frame
-                    << " sweep: " << current_angle * echo.sweep_length << "/"
-                    << (current_angle + 1) * echo.sweep_length
-                    << " total sweep length: " << echo.sweep_data.size();
+        LOG_INFO_S << "ANGLE LOOP-> Index: " << current_angle << " angle message: "
+                   << start_angle_unit + current_angle % angles_in_a_frame << "/"
+                   << angles_in_a_frame << " sweep: " << current_angle * echo.sweep_length
+                   << "/" << (current_angle + 1) * echo.sweep_length
+                   << " total sweep length: " << echo.sweep_data.size();
 
         m_echoes[(start_angle_unit + current_angle) % angles_in_a_frame] =
             std::make_unique<std::vector<uint8_t>>(echo.sweep_data.begin() +
@@ -122,24 +131,12 @@ int EchoesToFrameConverterTask::discretizeAngle(double theta_rad, int num_angles
 
 void EchoesToFrameConverterTask::publishFrame()
 {
-    if (_export_config.get().use_heading_correction) {
-        base::samples::RigidBodyState sensor2ref_pose;
-        if (_sensor2ref_pose.read(sensor2ref_pose) != RTT::NewData) {
-            return;
-        }
-        m_yaw_correction =
-            discretizeAngle(sensor2ref_pose.getYaw(), m_current_num_angles);
-    }
-    else {
-        m_yaw_correction = 0;
-    }
 
     LOG_INFO_S << "Adding echoes into a frame...";
-    LOG_DEBUG_S << "YAW correction: " << m_yaw_correction;
     for (const auto& [angle, sweep] : m_echoes) {
         for (int echo_index = 0; echo_index < m_current_sweep_size; echo_index++) {
             m_lut->updateImage(m_cv_frame,
-                (angle + m_yaw_correction) % m_current_num_angles,
+                (angle) % m_current_num_angles,
                 echo_index,
                 sweep->at(echo_index));
         }

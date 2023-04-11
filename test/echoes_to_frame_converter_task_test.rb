@@ -9,85 +9,92 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
     it "starts and outputs radar data" do
         task = create_configure_and_start_task
-        sleep(2)
-        expect_execution do
+        output = expect_execution do
             syskit_write task.echo_port, @echo
         end.to do
             have_one_new_sample(task.frame_port)
         end
-
-        # pp output
-        puts "Does the output looks OK ?"
-        ask_ok
+        expected = File.binread(File.join(__dir__, "image1.bin"))
+        assert_equal expected, "#{output.image.to_a}",
+                     "single radar data output differs from expected image"
     end
 
     it "starts and outputs multiple radar data for a single frame" do
         task = create_configure_and_start_task
-        sleep(2)
-        expect_execution do
+        output = expect_execution do
             syskit_write task.echo_port, @echo_part1
-            sleep(0.5)
             syskit_write task.echo_port, @echo_part2
         end.to do
             have_one_new_sample(task.frame_port)
         end
-
-        puts "Does the output looks OK ?"
-        ask_ok
+        expected = File.binread(File.join(__dir__, "image2.bin"))
+        assert_equal expected, "#{output.image.to_a}",
+                     "multiple radar data output differs from expected image"
     end
 
-    it "it rotates sample 90 degrees" do
+    it "it rotates sample 90 degrees 5 times" do
         task = create_task
         task.properties.export_config.use_heading_correction = true
         syskit_configure_and_start(task)
-        sleep(2)
-        @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
-        expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
-        sleep(0.5)
-        @sensor2ref_pose.orientation = Eigen::Quaternion.new(0.7071068, 0, 0, 0.7071068)
-        expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
-        sleep(0.5)
-        @sensor2ref_pose.orientation = Eigen::Quaternion.new(0, 0, 0, 1)
-        expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
-        sleep(0.5)
-        @sensor2ref_pose.orientation = Eigen::Quaternion.new(0.7071068, 0, 0, -0.7071068)
-        expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
-        sleep(0.5)
-        @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
-        expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
-        puts "Does the output looks OK ?"
-        ask_ok
-    end
 
-    def ask_ok
-        puts "OK ? (y/n)"
-        value = STDIN.readline.chomp
-        raise "test failed" unless value == "y"
+        arrow = []
+        64.times { arrow.concat [0] }
+        arrow[0..7] = [0, 255, 0, 255, 0, 255, 0, 255]
+        @echo_rotation[:sweep_data] = arrow
+        @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
+        output1 = expect_execution do
+            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
+            syskit_write task.echo_port, @echo_rotation
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+
+        arrow[0..7] = [0, 0, 0, 0, 0, 0, 0, 0]
+        arrow[48..55] = [0, 255, 0, 255, 0, 255, 0, 255]
+        @echo_rotation[:sweep_data] = arrow
+        @sensor2ref_pose.orientation = Eigen::Quaternion.new(0.7071068, 0, 0, 0.7071068)
+        output2 = expect_execution do
+            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
+            syskit_write task.echo_port, @echo_rotation
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+
+        arrow[48..55] = [0, 0, 0, 0, 0, 0, 0, 0]
+        arrow[32..39] = [0, 255, 0, 255, 0, 255, 0, 255]
+        @echo_rotation[:sweep_data] = arrow
+        @sensor2ref_pose.orientation = Eigen::Quaternion.new(0, 0, 0, 1)
+        output3 = expect_execution do
+            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
+            syskit_write task.echo_port, @echo_rotation
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+
+        arrow[32..39] = [0, 0, 0, 0, 0, 0, 0, 0]
+        arrow[16..23] = [0, 255, 0, 255, 0, 255, 0, 255]
+        @echo_rotation[:sweep_data] = arrow
+        @sensor2ref_pose.orientation = Eigen::Quaternion.new(-0.7071068, 0, 0, 0.7071068)
+        output4 = expect_execution do
+            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
+            syskit_write task.echo_port, @echo_rotation
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+        arrow[16..23] = [0, 0, 0, 0, 0, 0, 0, 0]
+        arrow[0..7] = [0, 255, 0, 255, 0, 255, 0, 255]
+        @echo_rotation[:sweep_data] = arrow
+        @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
+        output5 = expect_execution do
+            syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
+            syskit_write task.echo_port, @echo_rotation
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+        assert_equal output1.image.to_a, output2.image.to_a, "image 1 and 2 differ"
+        assert_equal output1.image.to_a, output3.image.to_a, "image 1 and 3 differ"
+        assert_equal output1.image.to_a, output4.image.to_a, "image 1 and 4 differ"
+        assert_equal output1.image.to_a, output5.image.to_a, "image 1 and 5 differ"
     end
 
     # rubocop: disable Metrics/AbcSize
@@ -102,7 +109,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         task.properties.export_config = {
             time_between_frames: Time.at(0.2),
             use_heading_correction: false,
-            window_size: 1024,
+            window_size: 512,
             beam_width: 1 / samples * 2 * Math::PI
         }
         pattern = [0, 255]
@@ -161,9 +168,6 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
             sweep_timestamps: times_array,
             sweep_data: input
         }
-        arrow = []
-        4.times { arrow.concat [255, 0] }
-        56.times { arrow.concat [0] }
         @echo_rotation = Types.radar_base.Radar.new
         @echo_rotation = {
             timestamp: Time.now,
@@ -175,8 +179,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
                 rad: 0
             },
             sweep_length: sweep_length,
-            sweep_timestamps: times_array*2,
-            sweep_data: arrow
+            sweep_timestamps: times_array * 2,
+            sweep_data: []
         }
 
         @sensor2ref_pose = Types.base.samples.RigidBodyState.Invalid
