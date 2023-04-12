@@ -116,13 +116,13 @@ namespace radar_base {
          */
         void cleanupHook();
 
-        void updateLookUpTable();
+        void updateLookUpTable(RadarFrameExportConfig config);
 
         void addEchoesToFrame(Radar const& echo, base::Angle yaw_correction);
 
         void publishFrame();
 
-        void configureOutput();
+        void configureOutput(RadarFrameExportConfig config);
     };
 }
 

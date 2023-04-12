@@ -26,8 +26,9 @@ bool EchoesToFrameConverterTask::configureHook()
 {
     if (!EchoesToFrameConverterTaskBase::configureHook())
         return false;
-    configureOutput();
-    updateLookUpTable();
+    auto config = _export_config.get();
+    configureOutput(config);
+    updateLookUpTable(config);
     return true;
 }
 bool EchoesToFrameConverterTask::startHook()
@@ -40,7 +41,7 @@ bool EchoesToFrameConverterTask::startHook()
 void EchoesToFrameConverterTask::updateHook()
 {
     EchoesToFrameConverterTaskBase::updateHook();
-
+    auto config = _export_config.get();
     Radar radar_echo;
     if (_echo.read(radar_echo, false) == RTT::NewData) {
         base::Angle yaw_correction = base::Angle::fromRad(0);
@@ -56,13 +57,13 @@ void EchoesToFrameConverterTask::updateHook()
                 m_current_sweep_size = radar_echo.sweep_length;
                 m_current_num_angles = 2 * M_PI / radar_echo.step_angle.getRad();
                 m_current_range = radar_echo.range;
-                updateLookUpTable();
+                updateLookUpTable(config);
             }
             addEchoesToFrame(radar_echo, yaw_correction);
         } while (_echo.read(radar_echo, false) == RTT::NewData);
 
-        if (base::Time::now() - m_last_sample >
-            _export_config.get().time_between_frames) {
+        auto deadline = m_last_sample + config.time_between_frames;
+        if (base::Time::now() > deadline) {
             publishFrame();
         }
     }
@@ -80,10 +81,9 @@ void EchoesToFrameConverterTask::cleanupHook()
     EchoesToFrameConverterTaskBase::cleanupHook();
 }
 
-void EchoesToFrameConverterTask::updateLookUpTable()
+void EchoesToFrameConverterTask::updateLookUpTable(RadarFrameExportConfig config)
 {
     LOG_INFO_S << "Updating LookUpTable";
-    auto config = _export_config.get();
     m_lut.reset(new EchoToImageLUT(m_current_num_angles,
         m_current_sweep_size,
         config.beam_width,
@@ -135,10 +135,9 @@ void EchoesToFrameConverterTask::publishFrame()
     m_cv_frame = 0;
 }
 
-void EchoesToFrameConverterTask::configureOutput()
+void EchoesToFrameConverterTask::configureOutput(RadarFrameExportConfig config)
 {
     LOG_INFO_S << "Configuring output";
-    auto config = _export_config.get();
     m_cv_frame = Mat::zeros(config.output_image_size, config.output_image_size, CV_8UC3);
 
     Frame* frame = new Frame(config.output_image_size,
