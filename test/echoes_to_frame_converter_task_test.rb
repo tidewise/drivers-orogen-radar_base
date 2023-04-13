@@ -36,7 +36,6 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
     it "it rotates sample 90 degrees 5 times" do
         task = create_task
-        task.properties.export_config.use_heading_correction = true
         syskit_configure_and_start(task)
 
         arrow = []
@@ -111,7 +110,6 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         sweep_length = 8
         task.properties.export_config = {
             time_between_frames: Time.at(0.001),
-            use_heading_correction: false,
             output_image_size: 512,
             beam_width: 1 / samples * 2 * Math::PI
         }
