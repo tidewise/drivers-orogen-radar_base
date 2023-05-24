@@ -42,32 +42,33 @@ void EchoesToFrameConverterTask::updateHook()
 {
     EchoesToFrameConverterTaskBase::updateHook();
     auto config = _export_config.get();
+
+    base::Angle yaw_correction = base::Angle::fromRad(0);
+    base::samples::RigidBodyState sensor2ref_pose;
+    if (_sensor2ref_pose.read(sensor2ref_pose) != RTT::NoData) {
+        yaw_correction = base::Angle::fromRad(sensor2ref_pose.getYaw());
+    }
+
     Radar radar_echo;
-    if (_echo.read(radar_echo, false) == RTT::NewData) {
-        base::Angle yaw_correction = base::Angle::fromRad(0);
-        base::samples::RigidBodyState sensor2ref_pose;
-        if (_sensor2ref_pose.read(sensor2ref_pose) != RTT::NoData) {
-            yaw_correction = base::Angle::fromRad(sensor2ref_pose.getYaw());
+    while (_echo.read(radar_echo, false) == RTT::NewData) {
+        if (m_current_sweep_size != radar_echo.sweep_length ||
+            m_current_num_angles != (2 * M_PI / abs(radar_echo.step_angle.getRad())) ||
+            m_current_range != radar_echo.range) {
+            m_current_sweep_size = radar_echo.sweep_length;
+            m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
+            m_current_range = radar_echo.range;
+            updateLookUpTable(config);
         }
+        addEchoesToFrame(radar_echo, yaw_correction);
+    }
 
-        do {
-            if (m_current_sweep_size != radar_echo.sweep_length ||
-                m_current_num_angles != (2 * M_PI / radar_echo.step_angle.getRad()) ||
-                m_current_range != radar_echo.range) {
-                m_current_sweep_size = radar_echo.sweep_length;
-                m_current_num_angles = 2 * M_PI / radar_echo.step_angle.getRad();
-                m_current_range = radar_echo.range;
-                updateLookUpTable(config);
-            }
-            addEchoesToFrame(radar_echo, yaw_correction);
-        } while (_echo.read(radar_echo, false) == RTT::NewData);
-
-        auto deadline = m_last_sample + config.time_between_frames;
-        if (base::Time::now() > deadline) {
-            publishFrame();
-        }
+    auto deadline = m_last_sample + config.time_between_frames;
+    if (base::Time::now() > deadline) {
+        publishFrame();
+        m_last_sample = base::Time::now();
     }
 }
+
 void EchoesToFrameConverterTask::errorHook()
 {
     EchoesToFrameConverterTaskBase::errorHook();
@@ -99,21 +100,27 @@ void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo,
     if (angle < 0) {
         angle = 2 * M_PI + angle;
     }
-
-    int start_angle_unit = round(angle / echo.step_angle.getRad());
-    int angles_in_a_frame = round(2 * M_PI / echo.step_angle.getRad());
+    int start_angle_unit = round(angle / abs(echo.step_angle.getRad()));
+    int angles_in_a_frame = round(2 * M_PI / abs(echo.step_angle.getRad()));
+    int signal = abs(echo.step_angle.getRad()) / echo.step_angle.getRad();
     for (int current_angle = 0;
          current_angle < static_cast<int>(echo.sweep_timestamps.size());
          current_angle++) {
+
+        int echo_position =
+            (start_angle_unit + current_angle * signal) % angles_in_a_frame;
+        if (echo_position < 0) {
+            echo_position += angles_in_a_frame;
+        }
         std::copy(echo.sweep_data.begin() + current_angle * echo.sweep_length,
             echo.sweep_data.begin() + (current_angle + 1) * echo.sweep_length,
-            m_echoes.begin() + echo.sweep_length * ((start_angle_unit + current_angle) %
-                                                       angles_in_a_frame));
+            m_echoes.begin() + echo.sweep_length * echo_position);
     }
 }
 
 void EchoesToFrameConverterTask::publishFrame()
 {
+    m_cv_frame = 0;
     LOG_INFO_S << "Creating a frame...";
     for (long i = 0; i < static_cast<long>(m_echoes.size()); i++) {
         m_lut->updateImage(m_cv_frame,
@@ -131,8 +138,6 @@ void EchoesToFrameConverterTask::publishFrame()
     out_frame->setStatus(STATUS_VALID);
     m_output_frame.reset(out_frame);
     _frame.write(m_output_frame);
-    m_last_sample = base::Time::now();
-    m_cv_frame = 0;
 }
 
 void EchoesToFrameConverterTask::configureOutput(RadarFrameExportConfig config)
