@@ -11,4 +11,6 @@
   <depend package="opencv" />
   <depend package="base/logging" />
   <test_depend name="tools/syskit" />
+
+  <tags>needs_opt</tags>
 </package>
