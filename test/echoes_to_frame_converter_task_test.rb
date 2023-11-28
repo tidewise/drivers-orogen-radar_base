@@ -51,7 +51,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         end
         expected = File.binread(File.join(__dir__, "image1.bin"))
 
-        assert_equal expected, "#{output.image.to_a}",
+        assert_equal expected, output.image.to_a.to_s,
                      "single radar data output differs from expected image"
     end
 
@@ -65,68 +65,48 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @echo_rotation[:sweep_data] = arrow
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
 
-        syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        output1 = expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
+        write_pose(task, @sensor2ref_pose)
+        output1 = write_echo(task, @echo_rotation)
 
         arrow[0..7] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[48..55] = [0, 255, 0, 255, 0, 255, 0, 255]
         @echo_rotation[:sweep_data] = arrow
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(0.7071068, 0, 0, 0.7071068)
 
-        syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        output2 = expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
+        write_pose(task, @sensor2ref_pose)
+        output2 = write_echo(task, @echo_rotation)
 
         arrow[48..55] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[32..39] = [0, 255, 0, 255, 0, 255, 0, 255]
         @echo_rotation[:sweep_data] = arrow
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(0, 0, 0, 1)
 
-        syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        output3 = expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
+        write_pose(task, @sensor2ref_pose)
+        output3 = write_echo(task, @echo_rotation)
 
         arrow[32..39] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[16..23] = [0, 255, 0, 255, 0, 255, 0, 255]
         @echo_rotation[:sweep_data] = arrow
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(-0.7071068, 0, 0, 0.7071068)
 
-        syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        output4 = expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
+        write_pose(task, @sensor2ref_pose)
+        output4 = write_echo(task, @echo_rotation)
 
         arrow[16..23] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[0..7] = [0, 255, 0, 255, 0, 255, 0, 255]
         @echo_rotation[:sweep_data] = arrow
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(1, 0, 0, 0)
 
-        syskit_write task.sensor2ref_pose_port, @sensor2ref_pose
-        output5 = expect_execution do
-            syskit_write task.echo_port, @echo_rotation
-        end.to do
-            have_one_new_sample(task.frame_port)
-        end
+        write_pose(task, @sensor2ref_pose)
+        output5 = write_echo(task, @echo_rotation)
+
         assert_equal output1.image.to_a, output2.image.to_a, "image 1 and 2 differ"
         assert_equal output1.image.to_a, output3.image.to_a, "image 1 and 3 differ"
         assert_equal output1.image.to_a, output4.image.to_a, "image 1 and 4 differ"
         assert_equal output1.image.to_a, output5.image.to_a, "image 1 and 5 differ"
     end
 
-    # rubocop: disable Metrics/AbcSize
-    def create_task
+    def create_task # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
         task = syskit_deploy(
             OroGen.radar_base
                   .EchoesToFrameConverterTask
@@ -235,11 +215,26 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation = Eigen::Quaternion.new(0.7071068, 0, 0, 0.7071068)
         task
     end
-    # rubocop: enable Metrics/AbcSize
 
     def create_configure_task
         task = create_task
         syskit_configure(task)
         task
+    end
+
+    def write_pose(task, pose)
+        expect_execution do
+            syskit_write task.sensor2ref_pose_port, pose
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
+    end
+
+    def write_echo(task, echo)
+        expect_execution do
+            syskit_write task.echo_port, echo
+        end.to do
+            have_one_new_sample(task.frame_port)
+        end
     end
 end
