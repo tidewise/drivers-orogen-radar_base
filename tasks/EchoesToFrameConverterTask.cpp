@@ -60,8 +60,6 @@ void EchoesToFrameConverterTask::updateHook()
             m_current_sweep_size = radar_echo.sweep_length;
             m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
             m_current_range = radar_echo.range;
-            m_echoes =
-                std::vector<uint8_t>(m_current_sweep_size * m_current_num_angles, 0);
             updateLookUpTable(config);
         }
         addEchoesToFrame(radar_echo, yaw_correction);
@@ -106,6 +104,7 @@ void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo,
 
 void EchoesToFrameConverterTask::publishFrame()
 {
+    m_cv_frame = 0;
     LOG_INFO_S << "Creating a frame...";
     drawImageFromEchoes(m_echoes, m_current_sweep_size, *m_lut, m_cv_frame);
     LOG_INFO_S << "Publishing Frame";
