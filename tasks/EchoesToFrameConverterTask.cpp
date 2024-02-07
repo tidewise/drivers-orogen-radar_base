@@ -52,15 +52,18 @@ void EchoesToFrameConverterTask::updateHook()
 
     Radar radar_echo;
     while (_echo.read(radar_echo, false) == RTT::NewData) {
+        m_current_sweep_size = radar_echo.sweep_length;
+        m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
         if (!m_lut->hasMatchingConfiguration(m_current_num_angles,
                 m_current_sweep_size,
                 config.beam_width,
-                config.output_image_size) ||
-            m_current_range != radar_echo.range) {
-            m_current_sweep_size = radar_echo.sweep_length;
-            m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
-            m_current_range = radar_echo.range;
+                config.output_image_size)) {
             updateLookUpTable(config);
+        }
+        if (m_current_range != radar_echo.range) {
+            m_current_range = radar_echo.range;
+            m_echoes =
+                std::vector<uint8_t>(m_current_sweep_size * m_current_num_angles, 0);
         }
         addEchoesToFrame(radar_echo, yaw_correction);
     }
