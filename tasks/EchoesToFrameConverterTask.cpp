@@ -106,7 +106,7 @@ void EchoesToFrameConverterTask::publishFrame()
 {
     m_cv_frame = 0;
     LOG_INFO_S << "Creating a frame...";
-    drawImageFromEchoes(m_echoes, m_current_sweep_size, *m_lut, m_cv_frame);
+    drawImageFromEchoes(m_echoes, *m_lut, m_cv_frame);
     LOG_INFO_S << "Publishing Frame";
     Mat output;
     cv::cvtColor(m_cv_frame, output, cv::COLOR_BGR2GRAY);
