@@ -5,7 +5,6 @@
 
 #include "radar_base/EchoToImageLUT.hpp"
 #include "radar_base/EchoesToFrameConverterTaskBase.hpp"
-#include "radar_base/Helpers.hpp"
 #include <base/Time.hpp>
 #include <base/samples/Frame.hpp>
 #include <memory>

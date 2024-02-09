@@ -7,7 +7,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace radar_base;
-using namespace helpers;
 using namespace cv;
 using namespace base::samples::frame;
 EchoesToFrameConverterTask::EchoesToFrameConverterTask(std::string const& name)
@@ -102,14 +101,14 @@ void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo,
     base::Angle yaw_correction)
 {
     LOG_INFO_S << "Adding echoes...";
-    updateEchoes(echo, yaw_correction, m_echoes);
+    Radar::updateEchoes(echo, yaw_correction, m_echoes);
 }
 
 void EchoesToFrameConverterTask::publishFrame()
 {
     m_cv_frame = 0;
     LOG_INFO_S << "Creating a frame...";
-    drawImageFromEchoes(m_echoes, *m_lut, m_cv_frame);
+    (*m_lut).drawImageFromEchoes(m_echoes, m_cv_frame);
     LOG_INFO_S << "Publishing Frame";
     Mat output;
     cv::cvtColor(m_cv_frame, output, cv::COLOR_BGR2GRAY);
