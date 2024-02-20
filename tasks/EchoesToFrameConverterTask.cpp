@@ -51,13 +51,18 @@ void EchoesToFrameConverterTask::updateHook()
 
     Radar radar_echo;
     while (_echo.read(radar_echo, false) == RTT::NewData) {
-        if (m_current_sweep_size != radar_echo.sweep_length ||
-            m_current_num_angles != (2 * M_PI / abs(radar_echo.step_angle.getRad())) ||
-            m_current_range != radar_echo.range) {
-            m_current_sweep_size = radar_echo.sweep_length;
-            m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
-            m_current_range = radar_echo.range;
+        m_current_sweep_size = radar_echo.sweep_length;
+        m_current_num_angles = 2 * M_PI / abs(radar_echo.step_angle.getRad());
+        if (!m_lut->hasMatchingConfiguration(m_current_num_angles,
+                m_current_sweep_size,
+                config.beam_width,
+                config.output_image_size)) {
             updateLookUpTable(config);
+        }
+        if (m_current_range != radar_echo.range) {
+            m_current_range = radar_echo.range;
+            m_echoes =
+                std::vector<uint8_t>(m_current_sweep_size * m_current_num_angles, 0);
         }
         addEchoesToFrame(radar_echo, yaw_correction);
     }
@@ -96,38 +101,14 @@ void EchoesToFrameConverterTask::addEchoesToFrame(Radar const& echo,
     base::Angle yaw_correction)
 {
     LOG_INFO_S << "Adding echoes...";
-    double angle = (echo.start_heading + yaw_correction).getRad();
-    if (angle < 0) {
-        angle = 2 * M_PI + angle;
-    }
-    int start_angle_unit = round(angle / abs(echo.step_angle.getRad()));
-    int angles_in_a_frame = round(2 * M_PI / abs(echo.step_angle.getRad()));
-    int signal = abs(echo.step_angle.getRad()) / echo.step_angle.getRad();
-    for (int current_angle = 0;
-         current_angle < static_cast<int>(echo.sweep_timestamps.size());
-         current_angle++) {
-
-        int echo_position =
-            (start_angle_unit + current_angle * signal) % angles_in_a_frame;
-        if (echo_position < 0) {
-            echo_position += angles_in_a_frame;
-        }
-        std::copy(echo.sweep_data.begin() + current_angle * echo.sweep_length,
-            echo.sweep_data.begin() + (current_angle + 1) * echo.sweep_length,
-            m_echoes.begin() + echo.sweep_length * echo_position);
-    }
+    Radar::updateEchoes(echo, yaw_correction, m_echoes);
 }
 
 void EchoesToFrameConverterTask::publishFrame()
 {
     m_cv_frame = 0;
     LOG_INFO_S << "Creating a frame...";
-    for (long i = 0; i < static_cast<long>(m_echoes.size()); i++) {
-        m_lut->updateImage(m_cv_frame,
-            i / m_current_sweep_size,
-            i % m_current_sweep_size,
-            m_echoes.at(i));
-    }
+    m_lut->drawImageFromEchoes(m_echoes, m_cv_frame);
     LOG_INFO_S << "Publishing Frame";
     Mat output;
     cv::cvtColor(m_cv_frame, output, cv::COLOR_BGR2GRAY);
