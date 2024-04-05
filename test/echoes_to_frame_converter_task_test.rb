@@ -135,7 +135,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         (samples / 2).times { input_inverted.concat(pattern2 + pattern1) }
         @echo = Types.radar_base.Radar.new
         @echo = {
-            timestamp: Time.now,
+            time: Time.now,
             range: 2.0,
             step_angle: {
                 rad: 2 * Math::PI / samples
@@ -150,7 +150,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
         @echo_inverted = Types.radar_base.Radar.new
         @echo_inverted = {
-            timestamp: Time.now,
+            time: Time.now,
             range: 2.0,
             step_angle: {
                 rad: -2 * Math::PI / samples
@@ -165,7 +165,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
         @echo_part1 = Types.radar_base.Radar.new
         @echo_part1 = {
-            timestamp: Time.now,
+            time: Time.now,
             range: 2.0,
             step_angle: {
                 rad: 2 * Math::PI / (2 * samples)
@@ -180,7 +180,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
         @echo_part2 = Types.radar_base.Radar.new
         @echo_part2 = {
-            timestamp: Time.now,
+            time: Time.now,
             range: 2.0,
             step_angle: {
                 rad: 2 * Math::PI / (2 * samples)
@@ -194,7 +194,7 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         }
         @echo_rotation = Types.radar_base.Radar.new
         @echo_rotation = {
-            timestamp: Time.now,
+            time: Time.now,
             range: 2.0,
             step_angle: {
                 rad: 2 * Math::PI / (2 * samples)
