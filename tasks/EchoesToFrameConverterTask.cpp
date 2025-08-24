@@ -137,12 +137,12 @@ void EchoesToFrameConverterTask::publishFrame()
     LOG_INFO_S << "Creating a frame...";
     m_lut->drawImageFromEchoes(m_echoes, m_cv_frame);
     LOG_INFO_S << "Publishing Frame";
-    Mat output;
-    cv::cvtColor(m_cv_frame, output, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(m_cv_frame, m_cv_frame_monochrome, cv::COLOR_BGR2GRAY);
     Frame* out_frame = m_output_frame.write_access();
     out_frame->time = base::Time::now();
     out_frame->received_time = out_frame->time;
-    out_frame->setImage(output.data, output.total() * output.elemSize());
+    out_frame->setImage(m_cv_frame_monochrome.data,
+        m_cv_frame_monochrome.total() * m_cv_frame_monochrome.elemSize());
     out_frame->setStatus(STATUS_VALID);
     m_output_frame.reset(out_frame);
     _frame.write(m_output_frame);
@@ -152,6 +152,8 @@ void EchoesToFrameConverterTask::configureOutput(RadarFrameExportConfig const& c
 {
     LOG_INFO_S << "Configuring output";
     m_cv_frame = Mat::zeros(config.output_image_size, config.output_image_size, CV_8UC3);
+    m_cv_frame_monochrome =
+        Mat::zeros(config.output_image_size, config.output_image_size, CV_8UC1);
 
     Frame* frame = new Frame(config.output_image_size,
         config.output_image_size,

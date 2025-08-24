@@ -42,6 +42,7 @@ namespace radar_base {
         std::vector<uint8_t> m_echoes;
         std::unique_ptr<EchoToImageLUT> m_lut;
         cv::Mat m_cv_frame;
+        cv::Mat m_cv_frame_monochrome;
         RTT::extras::ReadOnlyPointer<base::samples::frame::Frame> m_output_frame;
 
     protected:
