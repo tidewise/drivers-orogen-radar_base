@@ -18,6 +18,26 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @task = create_configure_task
     end
 
+    it "does not start output with only sensor2ref input" do
+        syskit_start(task)
+
+        expect_execution
+            .poll { syskit_write task.sensor2ref_pose_port, @sensor2ref_pose }
+            .to do
+                have_no_new_sample(task.frame_port, at_least_during: 5)
+            end
+    end
+
+    it "does not start output with only echo input" do
+        syskit_start(task)
+
+        expect_execution
+            .poll { syskit_write task.echo_port, @echo }
+            .to do
+                have_no_new_sample(task.frame_port, at_least_during: 5)
+            end
+    end
+
     it "starts and outputs single radar data" do
         syskit_start(task)
 
