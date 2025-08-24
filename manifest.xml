@@ -7,6 +7,7 @@
   <url>http://</url>
   <logo>http://</logo>
   <depend package="base/cmake" />
+  <depend package="drivers/orogen/aggregator" />
   <depend package="drivers/radar_base" />
   <depend package="opencv" />
   <depend package="base/logging" />
