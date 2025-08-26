@@ -20,5 +20,12 @@ task_context "EchoesToFrameConverterTask" do
     output_port "frame", ro_ptr("base/samples/frame/Frame")
     output_port "range", "double"
 
+    stream_aligner do
+        align_port "echo", 0, "timestamp"
+        align_port "sensor2ref_pose", 0
+
+        max_latency 1
+    end
+
     port_driven
 end

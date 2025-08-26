@@ -34,17 +34,23 @@ namespace radar_base {
         friend class EchoesToFrameConverterTaskBase;
 
     private:
-        int m_current_sweep_size = 0;
-        int m_current_num_angles = 0;
         float m_current_range = 0;
-        base::Time m_last_sample;
+        base::Time m_frame_output_deadline;
+        base::Angle m_yaw_correction;
+        RadarFrameExportConfig m_export_config;
 
         std::vector<uint8_t> m_echoes;
         std::unique_ptr<EchoToImageLUT> m_lut;
         cv::Mat m_cv_frame;
+        cv::Mat m_cv_frame_monochrome;
         RTT::extras::ReadOnlyPointer<base::samples::frame::Frame> m_output_frame;
 
     protected:
+        void echoCallback(const base::Time& ts, const radar_base::Radar& echo_sample);
+        void sensor2ref_poseCallback(const base::Time& ts,
+            const base::samples::RigidBodyState& sensor2ref_pose_sample);
+        void resetEchoMemory(std::size_t size);
+
     public:
         /** TaskContext constructor for EchoesToFrameConverterTask
          * \param name Name of the task. This name needs to be unique to make it
@@ -116,13 +122,15 @@ namespace radar_base {
          */
         void cleanupHook();
 
-        void updateLookUpTable(RadarFrameExportConfig config);
+        void updateLookUpTable(unsigned int num_sweeps,
+            unsigned int sweep_size,
+            RadarFrameExportConfig const& config);
 
         void addEchoesToFrame(Radar const& echo, base::Angle yaw_correction);
 
         void publishFrame();
 
-        void configureOutput(RadarFrameExportConfig config);
+        void configureOutput(RadarFrameExportConfig const& config);
     };
 }
 
