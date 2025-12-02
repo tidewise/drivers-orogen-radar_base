@@ -41,8 +41,9 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
     it "starts and outputs single radar data" do
         syskit_start(task)
 
-        write_pose(task, @sensor2ref_pose)
-        output = write_echo(task, @echo)
+        now = Time.now
+        write_pose(task, @sensor2ref_pose, now)
+        output = write_echo(task, @echo, now)
 
         expected = File.binread(File.join(__dir__, "image1.bin"))
 
@@ -53,10 +54,10 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
     it "starts and outputs multiple radar data for a single frame" do
         syskit_start(task)
 
-        write_pose(task, @sensor2ref_pose)
         now = Time.now
+        write_pose(task, @sensor2ref_pose, now)
         write_echo(task, @echo_part1, now)
-        output = write_echo(task, @echo_part2, now + 1)
+        output = write_echo(task, @echo_part2, now)
 
         expected = File.binread(File.join(__dir__, "image2.bin"))
 
@@ -66,8 +67,9 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
 
     it "starts and outputs radar data with a negative stepsize" do
         syskit_start(task)
-        write_pose(task, @sensor2ref_pose)
-        output = write_echo(task, @echo_inverted)
+        now = Time.now
+        write_pose(task, @sensor2ref_pose, now)
+        output = write_echo(task, @echo_inverted, now)
         expected = File.binread(File.join(__dir__, "image1.bin"))
 
         assert_equal expected, output.image.to_a.to_s,
@@ -84,8 +86,9 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation =
             Eigen::Quaternion.from_angle_axis(0, Eigen::Vector3.UnitZ)
 
-        write_pose(task, @sensor2ref_pose)
-        output1 = write_echo(task, @echo_rotation)
+        now = Time.now
+        write_pose(task, @sensor2ref_pose, now)
+        output1 = write_echo(task, @echo_rotation, now)
 
         arrow[0..7] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[48..55] = [0, 255, 0, 255, 0, 255, 0, 255]
@@ -93,8 +96,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation =
             Eigen::Quaternion.from_angle_axis(90 * DEG2RAD, Eigen::Vector3.UnitZ)
 
-        write_pose(task, @sensor2ref_pose)
-        output2 = write_echo(task, @echo_rotation)
+        write_pose(task, @sensor2ref_pose, now + 1)
+        output2 = write_echo(task, @echo_rotation, now + 1)
 
         arrow[48..55] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[32..39] = [0, 255, 0, 255, 0, 255, 0, 255]
@@ -102,8 +105,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation =
             Eigen::Quaternion.from_angle_axis(180 * DEG2RAD, Eigen::Vector3.UnitZ)
 
-        write_pose(task, @sensor2ref_pose)
-        output3 = write_echo(task, @echo_rotation)
+        write_pose(task, @sensor2ref_pose, now + 2)
+        output3 = write_echo(task, @echo_rotation, now + 2)
 
         arrow[32..39] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[16..23] = [0, 255, 0, 255, 0, 255, 0, 255]
@@ -111,8 +114,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation =
             Eigen::Quaternion.from_angle_axis(270 * DEG2RAD, Eigen::Vector3.UnitZ)
 
-        write_pose(task, @sensor2ref_pose)
-        output4 = write_echo(task, @echo_rotation)
+        write_pose(task, @sensor2ref_pose, now + 3)
+        output4 = write_echo(task, @echo_rotation, now + 3)
 
         arrow[16..23] = [0, 0, 0, 0, 0, 0, 0, 0]
         arrow[0..7] = [0, 255, 0, 255, 0, 255, 0, 255]
@@ -120,8 +123,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         @sensor2ref_pose.orientation =
             Eigen::Quaternion.from_angle_axis(0, Eigen::Vector3.UnitZ)
 
-        write_pose(task, @sensor2ref_pose)
-        output5 = write_echo(task, @echo_rotation)
+        write_pose(task, @sensor2ref_pose, now + 4)
+        output5 = write_echo(task, @echo_rotation, now + 4)
 
         assert_equal output1.image.to_a, output2.image.to_a, "image 1 and 2 differ"
         assert_equal output1.image.to_a, output3.image.to_a, "image 1 and 3 differ"
@@ -244,8 +247,8 @@ describe OroGen.radar_base.EchoesToFrameConverterTask do
         task
     end
 
-    def write_pose(task, pose)
-        pose.time = Time.now
+    def write_pose(task, pose, time = Time.now)
+        pose.time = time
         stream_aligner_write(
             task,
             task.sensor2ref_pose_port,
