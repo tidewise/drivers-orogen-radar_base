@@ -4,9 +4,11 @@ using_library "radar_base"
 import_types_from "base"
 import_types_from "radar_base/Radar.hpp"
 import_types_from "radar_baseTypes.hpp"
+import_types_from "radar_base/BaseTypes.hpp"
 
 typekit do
     export_types "radar_base/Radar"
+    export_types "/radar_base/ArpaTargets"
 end
 
 task_context "EchoesToFrameConverterTask" do
